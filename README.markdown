@@ -17,5 +17,5 @@ User stories are stated below.
 #### User Story #11: My tooltip should have a data-education property that corresponds to the data-education of the active area.
 
 ### datasets:
-US Education Data:https://cdn.freecodecamp.org/testable-projects-fcc/data/choropleth_map/for_user_education.json
+US Education Data:https://cdn.freecodecamp.org/testable-projects-fcc/data/choropleth_map/for_user_education.json  
 US County Data:https://cdn.freecodecamp.org/testable-projects-fcc/data/choropleth_map/counties.json
