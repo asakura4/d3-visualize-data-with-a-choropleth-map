@@ -1,0 +1,205 @@
+// colors from colorbrewer
+// http://colorbrewer2.org/
+
+var colorbrewer = {
+  Orange: ['#fff5eb', '#fee6ce', '#fdd0a2', '#fdae6b', '#fd8d3c', '#f16913', '#d94801', '#8c2d04'] };
+
+
+var setColorDomain = (min, max, len) => {
+  var arr = [];
+  var step = (max - min) / len;
+  for (var i = 1; i < len; i++) {
+    arr.push(min + i * step);
+  }
+  return arr;
+};
+
+var width = 880;
+var height = 660;
+var padding = {
+  top: 30,
+  bottom: 30 };
+
+
+
+var tip = d3.select('.graph-part').
+append('div').
+attr('id', 'tooltip').
+attr('class', 'tooltip').
+style('opacity', 0);
+
+var svg = d3.select('.graph-part').
+append('svg').
+attr('width', width).
+attr('height', height + padding.top + padding.bottom).
+append('g');
+
+
+var path = d3.geoPath();
+
+
+dataUrl = [
+"https://cdn.freecodecamp.org/testable-projects-fcc/data/choropleth_map/for_user_education.json",
+"https://cdn.freecodecamp.org/testable-projects-fcc/data/choropleth_map/counties.json"];
+
+
+var dataQueue = d3.queue();
+dataUrl.forEach(url => {
+  dataQueue.defer(d3.json, url);
+});
+
+dataQueue.await((err, edu, county) => {
+  if (err) {
+    throw error;
+  }
+  console.log(edu);
+  console.log(county);
+
+  var EdLevel = edu.map(c => c.bachelorsOrHigher);
+
+  var minEdLevel = Math.min.apply(null, EdLevel);
+  var maxEdLevel = Math.max.apply(null, EdLevel);
+
+  // color legend
+
+  var legendXScale = d3.scaleLinear().
+  domain([minEdLevel, maxEdLevel]).
+  range([600, 850]);
+
+  var legendColors = colorbrewer['Orange'];
+  var legendHeight = 240 / legendColors.length;
+
+  var legendThreshold = d3.scaleThreshold().
+  domain(setColorDomain(minEdLevel, maxEdLevel, legendColors.length)).
+  range(legendColors);
+
+  var legendXTick = legendThreshold.domain().map(x => x);
+  legendXTick.unshift(minEdLevel);
+  legendXTick.push(maxEdLevel);
+  console.log("Xtick", legendXTick);
+
+  var legendXAxis = d3.axisBottom(legendXScale).
+  tickValues(legendXTick).
+  tickFormat(x => Math.round(x) + '%');
+
+
+  var legend = svg.
+  append('g').
+  attr('id', 'legend');
+
+
+  legend.append('g').
+  selectAll('rect').
+  data(
+  legendThreshold.range().map(function (color) {
+    var d = legendThreshold.invertExtent(color);
+    if (isNaN(d[0])) {
+
+      d[0] = legendXScale.domain()[0];
+    }
+    if (isNaN(d[1])) {
+
+      d[1] = legendXScale.domain()[1];
+    }
+    //console.log(d);
+    return d;
+  })).
+  enter().
+  append('rect').
+  attr('x', d => {
+    if (!isNaN(d[0])) {
+      return legendXScale(d[0]);
+    }
+
+
+  }).
+  attr('y', 0).
+  attr('width', d => legendXScale(d[1]) - legendXScale(d[0])).
+  attr('height', legendHeight).
+  attr('fill', d => legendThreshold(d[0]));
+
+  // legend.append('text')
+  // .attr('class', 'caption')
+  // .attr('x', legendXScale.range()[0])
+  // .attr('y', -6)
+  // .attr('fill', '#000')
+  // .attr('text-anchor', 'start')
+  // .attr('font-weight', 'bold');
+
+  legend.append('g').
+  attr('transform', `translate(0, ${legendHeight})`).
+  call(legendXAxis);
+
+
+  svg.append('g').
+  attr('class', 'counties').
+  selectAll('path').
+  data(topojson.feature(county, county.objects.counties).features).
+  enter().
+  append('path').
+  attr('class', 'county').
+  attr('data-fips', d => d.id).
+  attr('data-education', d => {
+    var result = edu.filter(c => c.fips === d.id);
+    if (result[0]) {
+
+      return result[0].bachelorsOrHigher;
+    } else {
+      console.log('could find data for: ', d.id);
+      return 0;
+    }
+  }).
+  attr('fill', d => {
+    var result = edu.filter(c => c.fips === d.id);
+    if (result[0]) {
+
+      return legendThreshold(result[0].bachelorsOrHigher);
+    } else {
+      console.log('could not find data for: ', d.id);
+      return legendThreshold(0);
+    }
+  }).
+  attr('d', path).
+  on('mouseover', d => {
+    var result = edu.filter(c => c.fips === d.id);
+    if (result[0]) {
+      var str = result[0].area_name +
+      ', ' +
+      result[0].state;
+      ': ' +
+      result[0].bachelorsOrHigher +
+      '%';
+    } else {
+      var str = 'no corresponding data';
+    }
+
+    tip.style('opacity', 0.9);
+    tip.attr('data-education', () => {
+      var result = edu.filter(c => c.fips === d.id);
+      if (result[0]) {
+
+        return result[0].bachelorsOrHigher;
+      } else {
+        console.log('could not find data for: ', d.id);
+        return 0;
+      }
+    }).
+    html(str).
+    style('left', d3.event.pageX + 10 + 'px').
+    style('top', d3.event.pageY - 28 + 'px');
+
+  }).
+  on('mouseout', () => {
+    tip.style('opacity', 0);
+  });
+
+
+  svg.append("path").
+  datum(topojson.mesh(county, county.objects.states, (a, b) => a !== b)).
+  attr("fill", "none").
+  attr("stroke", "white").
+  attr("stroke-linejoin", "round").
+  attr("d", path);
+
+
+});

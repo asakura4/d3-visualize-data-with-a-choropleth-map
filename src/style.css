@@ -1,0 +1,39 @@
+*{
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  height: 100%;
+  width: 100%;
+}
+
+.main {
+  display: flex;
+  align-item: center;
+  justify-content: center;
+/*   position: relative; */
+}
+.graph-part {
+/*   position: relative; */
+}
+
+.main .header {
+  text-align: center;
+  
+}
+#title{
+  font-size: 2em;
+  padding-bottom: 1rem;
+}
+
+.tooltip {
+  position: absolute;
+  padding: 10px;
+  font: 12px Arial;
+  background: rgba(0, 128, 0, 0.9);
+  box-shadow: 1px 1px 10px rgba(128, 128, 128, 0.6);
+  border: 0px;
+  border-radius: 0px;
+  pointer-events: none;
+}
